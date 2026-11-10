@@ -419,6 +419,23 @@ class TestGenericPath:
         assert sorted(paths03d) == sorted(p[::-1] for p in paths30b)
         assert sorted(paths03b) == sorted(p[::-1] for p in paths30b)
 
+    @pytest.mark.parametrize("method", ["dijkstra", "bellman-ford"])
+    @pytest.mark.parametrize("create_using", [nx.Graph, nx.DiGraph])
+    def test_all_shortest_paths_zero_weight_edge_at_source(self, method, create_using):
+        # The zero-weight edge makes the source a "predecessor" of node 1.
+        # Each shortest path must still be produced exactly once.
+        G = nx.empty_graph(create_using=create_using)
+        G.add_edge(0, 1, weight=0)
+        G.add_edge(1, 0, weight=0)
+        G.add_edge(0, 2, weight=1)
+        kwargs = {"weight": "weight", "method": method}
+        assert list(nx.all_shortest_paths(G, 0, 2, **kwargs)) == [[0, 2]]
+        assert list(nx.all_shortest_paths(G, 0, 0, **kwargs)) == [[0]]
+        paths = dict(nx.single_source_all_shortest_paths(G, 0, **kwargs))
+        assert paths == {0: [[0]], 1: [[0, 1]], 2: [[0, 2]]}
+        paths = dict(nx.all_pairs_all_shortest_paths(G, **kwargs))
+        assert paths[0] == {0: [[0]], 1: [[0, 1]], 2: [[0, 2]]}
+
 
 class TestAverageShortestPathLength:
     def test_cycle_graph(self):

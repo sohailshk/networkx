@@ -703,15 +703,20 @@ def _build_paths_from_predecessors(sources, target, pred):
 
     stack = {target: iter(pred[target])}
     path = [target]
+    if target in sources:
+        yield path[::-1]
     while stack:
         node = path[-1]
-        if node in sources:
-            yield path[::-1]
         for predecessor in stack[node]:
             if predecessor in stack:
                 continue
             stack[predecessor] = iter(pred[predecessor])
             path.append(predecessor)
+            # Yield when a source is first reached. A source can have
+            # predecessors (zero-weight edges), so it can be on top of the stack
+            # again after exploring them and must not be yielded a second time.
+            if predecessor in sources:
+                yield path[::-1]
             break
         else:
             stack.popitem()
